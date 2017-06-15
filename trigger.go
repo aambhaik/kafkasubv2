@@ -376,18 +376,18 @@ func onMessage(t *KafkaSubTrigger, msg *sarama.ConsumerMessage) {
 
 				if err != nil {
 					flogoLogger.Errorf("Failed to parse the condition specified for content-based handler routing [%s] for reason [%s]. message lost", handler.Settings["Condition"], err)
+					continue
 				}
 
 				if !model.Evaluate(operation) {
-					flogoLogger.Debugf("condition[%v] does not match the message data [%v]", handler.Settings["Condition"], data)
+					flogoLogger.Debugf("condition[%v] does not match the message data [%v]. skipping message", handler.Settings["Condition"], data)
 					continue
 				}
 				flogoLogger.Debugf("condition[%v] evaluates to true on data [%v]", handler.Settings["Condition"], data)
 			}
 
-		} else {
-			flogoLogger.Infof("No condition defined")
 		}
+
 		actionID := action.Get(handler.ActionId)
 		flogoLogger.Debugf("Found action: '%+x' for ActionID: %s", actionID, handler.ActionId)
 		if t.metadata == nil {
