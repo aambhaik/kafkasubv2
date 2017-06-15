@@ -17,7 +17,6 @@ import (
 
 	"io/ioutil"
 
-	"errors"
 	"github.com/Shopify/sarama"
 	"github.com/TIBCOSoftware/flogo-lib/core/action"
 	"github.com/TIBCOSoftware/flogo-lib/core/trigger"
