@@ -89,7 +89,7 @@ func (t *KafkaSubTrigger) Start() error {
 	t.signals = &signals
 	signal.Notify(*t.signals, os.Interrupt)
 	go run(t)
-	flogoLogger.Debug("KafkaSubTrigger Started")
+	flogoLogger.Infof("KafkaSubTrigger Started")
 	return nil
 }
 
@@ -356,19 +356,23 @@ func onMessage(t *KafkaSubTrigger, msg *sarama.ConsumerMessage) {
 	if msg == nil {
 		return
 	}
-	flogoLogger.Debugf("Kafka subscriber triggering job from topic [%s] on partition [%d] with key [%s] at offset [%d]",
+	flogoLogger.Infof("Kafka subscriber triggering job from topic [%s] on partition [%d] with key [%s] at offset [%d]",
 		msg.Topic, msg.Partition, msg.Key, msg.Offset)
 	for _, handler := range t.config.Handlers {
 		if handler.Settings["condition"] != nil {
 			//parse the condition
 			operation, err := model.GetConditionOperation(handler.Settings["condition"].(string), string(msg.Value))
+
 			if err != nil {
 				flogoLogger.Errorf("Failed to parse the condition specified for content-based handler routing [%s] for reason [%s]. message lost", handler.Settings["condition"], err)
 			}
+			flogoLogger.Infof("Found condition[%v] and operation [%s]", handler.Settings["condition"], operation)
 
 			if !model.Evaluate(operation) {
+				flogoLogger.Infof("condition[%v] evaluates to false on data [%v]", handler.Settings["condition"], msg.Value)
 				continue
 			}
+			flogoLogger.Infof("condition[%v] evaluates to true on data [%v]", handler.Settings["condition"], msg.Value)
 		}
 		actionID := action.Get(handler.ActionId)
 		flogoLogger.Debugf("Found action: '%+x' for ActionID: %s", actionID, handler.ActionId)
