@@ -1,8 +1,8 @@
 {
-  "name": "tibco-kafkasub",
+  "name": "tibco-kafkasubv2",
   "type": "flogo:trigger",
-  "ref": "github.com/TIBCOSoftware/flogo-contrib/trigger/kafkasub",
-  "version": "0.0.1",
+  "ref": "github.com/aambhaik/kafkasubv2",
+  "version": "0.0.2",
   "title": "Subscribe to a Kafka topic",
   "description": "Simple Kafka subscriber trigger",
  "settings":[
@@ -45,6 +45,10 @@
       },
       {
         "name": "truststore",
+        "type": "string"
+      },
+      {
+        "name": "Condition",
         "type": "string"
       }
     ]

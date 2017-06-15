@@ -1,4 +1,4 @@
-package kafkasub
+package kafkasubv2
 
 import (
 	"context"
