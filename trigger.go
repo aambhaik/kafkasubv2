@@ -359,7 +359,7 @@ func onMessage(t *KafkaSubTrigger, msg *sarama.ConsumerMessage) {
 	flogoLogger.Infof("Kafka subscriber triggering job from topic [%s] on partition [%d] with key [%s] at offset [%d]",
 		msg.Topic, msg.Partition, msg.Key, msg.Offset)
 	for _, handler := range t.config.Handlers {
-		if handler.Settings["condition"] != nil {
+		if handler.Settings["Condition"] != nil {
 			//parse the condition
 			operation, err := model.GetConditionOperation(handler.Settings["condition"].(string), string(msg.Value))
 
@@ -373,6 +373,8 @@ func onMessage(t *KafkaSubTrigger, msg *sarama.ConsumerMessage) {
 				continue
 			}
 			flogoLogger.Infof("condition[%v] evaluates to true on data [%v]", handler.Settings["condition"], msg.Value)
+		} else {
+			flogoLogger.Infof("No condition defined")
 		}
 		actionID := action.Get(handler.ActionId)
 		flogoLogger.Debugf("Found action: '%+x' for ActionID: %s", actionID, handler.ActionId)
