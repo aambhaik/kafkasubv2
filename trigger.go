@@ -361,18 +361,18 @@ func onMessage(t *KafkaSubTrigger, msg *sarama.ConsumerMessage) {
 	for _, handler := range t.config.Handlers {
 		if handler.Settings["Condition"] != nil {
 			//parse the condition
-			operation, err := model.GetConditionOperation(handler.Settings["condition"].(string), string(msg.Value))
+			operation, err := model.GetConditionOperation(handler.Settings["Condition"].(string), string(msg.Value))
 
 			if err != nil {
-				flogoLogger.Errorf("Failed to parse the condition specified for content-based handler routing [%s] for reason [%s]. message lost", handler.Settings["condition"], err)
+				flogoLogger.Errorf("Failed to parse the condition specified for content-based handler routing [%s] for reason [%s]. message lost", handler.Settings["Condition"], err)
 			}
-			flogoLogger.Infof("Found condition[%v] and operation [%s]", handler.Settings["condition"], operation)
+			flogoLogger.Infof("Found condition[%v] and operation [%s]", handler.Settings["Condition"], operation)
 
 			if !model.Evaluate(operation) {
-				flogoLogger.Infof("condition[%v] evaluates to false on data [%v]", handler.Settings["condition"], msg.Value)
+				flogoLogger.Infof("condition[%v] evaluates to false on data [%v]", handler.Settings["Condition"], msg.Value)
 				continue
 			}
-			flogoLogger.Infof("condition[%v] evaluates to true on data [%v]", handler.Settings["condition"], msg.Value)
+			flogoLogger.Infof("condition[%v] evaluates to true on data [%v]", handler.Settings["Condition"], msg.Value)
 		} else {
 			flogoLogger.Infof("No condition defined")
 		}
