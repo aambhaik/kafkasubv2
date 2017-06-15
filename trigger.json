@@ -1,11 +1,11 @@
 {
   "name": "tibco-kafkasub",
   "type": "flogo:trigger",
-  "ref": "github.com/TIBCOSoftware/flogo-contrib/trigger/kafkasub",
+  "ref": "github.com/aambhaik/kafkasubv2",
   "version": "0.0.1",
   "title": "Receive Kafka Messages",
-  "author": "Wendell Nichols <wnichols@tibco.com>",
-  "description": "Simple Kafka Trigger",
+  "author": "aambhaik@tibco.com>",
+  "description": "Simple Kafka Trigger with conditional routing",
  "settings":[
     {
       "name": "BrokerUrl",
