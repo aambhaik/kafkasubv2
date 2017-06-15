@@ -17,11 +17,13 @@ import (
 
 	"io/ioutil"
 
+	"errors"
 	"github.com/Shopify/sarama"
 	"github.com/TIBCOSoftware/flogo-lib/core/action"
 	"github.com/TIBCOSoftware/flogo-lib/core/trigger"
 	"github.com/TIBCOSoftware/flogo-lib/logger"
 	"github.com/aambhaik/resources/model"
+	"github.com/aambhaik/resources/util"
 )
 
 // log is the default package logger
@@ -356,23 +358,34 @@ func onMessage(t *KafkaSubTrigger, msg *sarama.ConsumerMessage) {
 	if msg == nil {
 		return
 	}
-	flogoLogger.Infof("Kafka subscriber triggering job from topic [%s] on partition [%d] with key [%s] at offset [%d]",
+	flogoLogger.Debugf("Kafka subscriber triggering job from topic [%s] on partition [%d] with key [%s] at offset [%d]",
 		msg.Topic, msg.Partition, msg.Key, msg.Offset)
 	for _, handler := range t.config.Handlers {
 		if handler.Settings["Condition"] != nil {
-			//parse the condition
-			operation, err := model.GetConditionOperation(handler.Settings["Condition"].(string), string(msg.Value))
-
-			if err != nil {
-				flogoLogger.Errorf("Failed to parse the condition specified for content-based handler routing [%s] for reason [%s]. message lost", handler.Settings["Condition"], err)
-			}
-			flogoLogger.Infof("Found condition[%v] and operation [%s]", handler.Settings["Condition"], operation)
-
-			if !model.Evaluate(operation) {
-				flogoLogger.Infof("condition[%v] evaluates to false on data [%v]", handler.Settings["Condition"], msg.Value)
+			/**
+			For conditions to work with the payload, ensure that the payload is a valid JSON!!
+			*/
+			//check if the message content is JSON first. mashling only supports JSON payloads for condition/content evaluation
+			data := string(msg.Value)
+			isJson := util.IsJSON(string(msg.Value))
+			if !isJson {
+				flogoLogger.Infof(fmt.Sprintf("Content is not a valid JSON payload [%v], skipping message.", data))
 				continue
+			} else {
+				//parse the condition
+				operation, err := model.GetConditionOperation(handler.Settings["Condition"].(string), data)
+
+				if err != nil {
+					flogoLogger.Errorf("Failed to parse the condition specified for content-based handler routing [%s] for reason [%s]. message lost", handler.Settings["Condition"], err)
+				}
+
+				if !model.Evaluate(operation) {
+					flogoLogger.Debugf("condition[%v] does not match the message data [%v]", handler.Settings["Condition"], data)
+					continue
+				}
+				flogoLogger.Debugf("condition[%v] evaluates to true on data [%v]", handler.Settings["Condition"], data)
 			}
-			flogoLogger.Infof("condition[%v] evaluates to true on data [%v]", handler.Settings["Condition"], msg.Value)
+
 		} else {
 			flogoLogger.Infof("No condition defined")
 		}
