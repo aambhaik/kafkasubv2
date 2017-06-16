@@ -360,30 +360,30 @@ func onMessage(t *KafkaSubTrigger, msg *sarama.ConsumerMessage) {
 	flogoLogger.Debugf("Kafka subscriber triggering job from topic [%s] on partition [%d] with key [%s] at offset [%d]",
 		msg.Topic, msg.Partition, msg.Key, msg.Offset)
 	for _, handler := range t.config.Handlers {
-		if handler.Settings["Condition"] != nil {
+		if handler.Settings[util.Flogo_Trigger_Handler_Setting_Condition] != nil {
 			/**
 			For conditions to work with the payload, ensure that the payload is a valid JSON!!
 			*/
 			//check if the message content is JSON first. mashling only supports JSON payloads for condition/content evaluation
 			data := string(msg.Value)
-			isJson := util.IsJSON(string(msg.Value))
+			isJson := util.IsJSON(data)
 			if !isJson {
 				flogoLogger.Infof(fmt.Sprintf("Content is not a valid JSON payload [%v], skipping message.", data))
 				continue
 			} else {
 				//parse the condition
-				operation, err := model.GetConditionOperation(handler.Settings["Condition"].(string), data)
+				operation, err := model.GetConditionOperation(handler.Settings[util.Flogo_Trigger_Handler_Setting_Condition].(string), data)
 
 				if err != nil {
-					flogoLogger.Errorf("Failed to parse the condition specified for content-based handler routing [%s] for reason [%s]. message lost", handler.Settings["Condition"], err)
+					flogoLogger.Errorf("Failed to parse the condition specified for content-based handler routing [%s] for reason [%s]. message lost", handler.Settings[util.Flogo_Trigger_Handler_Setting_Condition], err)
 					continue
 				}
 
 				if !model.Evaluate(operation) {
-					flogoLogger.Debugf("condition[%v] does not match the message data [%v]. skipping message", handler.Settings["Condition"], data)
+					flogoLogger.Debugf("condition[%v] does not match the message data [%v]. skipping message", handler.Settings[util.Flogo_Trigger_Handler_Setting_Condition], data)
 					continue
 				}
-				flogoLogger.Debugf("condition[%v] evaluates to true on data [%v]", handler.Settings["Condition"], data)
+				flogoLogger.Debugf("condition[%v] evaluates to true on data [%v]", handler.Settings[util.Flogo_Trigger_Handler_Setting_Condition], data)
 			}
 
 		}
