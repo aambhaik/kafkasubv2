@@ -229,28 +229,6 @@ func initKafkaParms(t *KafkaSubTrigger) error {
 		}
 		t.kafkaParms.topic = handler.Settings["Topic"].(string)
 
-		flogoLogger.Debugf("handler [%v]", handler.ActionId)
-
-		//handle the condition, if specified
-		if handler.Settings[util.Flogo_Trigger_Handler_Setting_Condition] != nil {
-			expressionStr := handler.Settings[util.Flogo_Trigger_Handler_Setting_Condition].(string)
-			flogoLogger.Debugf("handler is [%v], expression is [%v]", handler.ActionId, expressionStr)
-
-			conditionOperation, err := condition.GetConditionOperation(expressionStr)
-			if err != nil {
-				flogoLogger.Errorf("Failed to parse the condition specified for content-based handler routing [%s] for reason [%s]. message lost", expressionStr, err)
-				continue
-			}
-			flogoLogger.Debugf("handler is [%v], operation is [%v]", handler.ActionId, conditionOperation)
-
-			_, exists := handlerConditionMap[handler.ActionId]
-			if !exists {
-				handlerConditionMap[handler.ActionId] = conditionOperation
-			}
-		}
-
-		flogoLogger.Debugf("handler condition map is [%v]", handlerConditionMap)
-
 		//offset
 		if handler.Settings["offset"] != nil {
 			i, error := strconv.Atoi(handler.Settings["offset"].(string))
@@ -403,8 +381,20 @@ func onMessage(t *KafkaSubTrigger, msg *sarama.ConsumerMessage) {
 				//get the cached condition for this handler
 				conditionOperation, exists := handlerConditionMap[handler.ActionId]
 				if !exists {
-					flogoLogger.Debugf("Unable to find condition operator for handler [%v]. skipping message", handler)
-					continue
+					expressionStr := handler.Settings[util.Flogo_Trigger_Handler_Setting_Condition].(string)
+					flogoLogger.Debugf("handler is [%v], expression is [%v]", handler.ActionId, expressionStr)
+
+					conditionOperation, err := condition.GetConditionOperation(expressionStr)
+					if err != nil {
+						flogoLogger.Errorf("Failed to parse the condition specified for content-based handler routing [%s] for reason [%s]. message lost", expressionStr, err)
+						continue
+					}
+					flogoLogger.Debugf("handler is [%v], operation is [%v]", handler.ActionId, conditionOperation)
+
+					_, exists := handlerConditionMap[handler.ActionId]
+					if !exists {
+						handlerConditionMap[handler.ActionId] = conditionOperation
+					}
 				}
 				result, err := condition.EvaluateCondition(*conditionOperation, data)
 				if err != nil {
