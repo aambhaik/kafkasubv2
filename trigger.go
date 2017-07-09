@@ -221,7 +221,7 @@ func initKafkaParms(t *KafkaSubTrigger) error {
 		return fmt.Errorf("Kafka trigger requires at least one handler containing a valid topic name")
 	}
 
-	fmt.Sprintf("registered operators are [%v]", condition.OperatorRegistry.Names())
+	flogoLogger.Debugf("registered operators are [%v]", condition.OperatorRegistry.Names())
 
 	for _, handler := range t.config.Handlers {
 		if handler.Settings["Topic"] == nil {
