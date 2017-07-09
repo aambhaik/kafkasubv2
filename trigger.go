@@ -384,18 +384,17 @@ func onMessage(t *KafkaSubTrigger, msg *sarama.ConsumerMessage) {
 					expressionStr := handler.Settings[util.Flogo_Trigger_Handler_Setting_Condition].(string)
 					flogoLogger.Debugf("handler is [%v], expression is [%v]", handler.ActionId, expressionStr)
 
-					conditionOperation, err := condition.GetConditionOperation(expressionStr)
+					c, err := condition.GetConditionOperation(expressionStr)
 					if err != nil {
 						flogoLogger.Errorf("Failed to parse the condition specified for content-based handler routing [%s] for reason [%s]. message lost", expressionStr, err)
 						continue
 					}
-					flogoLogger.Debugf("handler is [%v], operation is [%v]", handler.ActionId, conditionOperation)
+					flogoLogger.Debugf("handler is [%v], operation is [%v]", handler.ActionId, c)
 
-					_, exists := handlerConditionMap[handler.ActionId]
-					if !exists {
-						handlerConditionMap[handler.ActionId] = conditionOperation
-					}
+					handlerConditionMap[handler.ActionId] = c
+					conditionOperation = c
 				}
+
 				result, err := condition.EvaluateCondition(*conditionOperation, data)
 				if err != nil {
 					flogoLogger.Errorf("Unable to evaluate condition operator for handler [%v] with error [%v]. skipping message", handler.Settings[util.Flogo_Trigger_Handler_Setting_Condition], err)
