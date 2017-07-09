@@ -21,17 +21,13 @@ import (
 	"github.com/TIBCOSoftware/flogo-lib/core/action"
 	"github.com/TIBCOSoftware/flogo-lib/core/trigger"
 	"github.com/TIBCOSoftware/flogo-lib/logger"
-	"github.com/aambhaik/resources/conditions"
+	"github.com/aambhaik/resources/model"
 	"github.com/aambhaik/resources/util"
 )
 
 // log is the default package logger
 var flogoLogger = logger.GetLogger("trigger-tibco-kafkasubv2")
 
-// map of handlers and condition operators. cache the operation so that the message handling is quick.
-var handlerConditionMap = make(map[string]*condition.Condition)
-
-// cached condition
 type _kafkaParms struct {
 	brokers    []string
 	topic      string
@@ -226,20 +222,6 @@ func initKafkaParms(t *KafkaSubTrigger) error {
 		}
 		t.kafkaParms.topic = handler.Settings["Topic"].(string)
 
-		//handle the condition, if specified
-		if handler.Settings[util.Flogo_Trigger_Handler_Setting_Condition] != nil {
-			expressionStr := handler.Settings[util.Flogo_Trigger_Handler_Setting_Condition].(string)
-			conditionOperation, err := condition.GetConditionOperation(expressionStr)
-			if err != nil {
-				flogoLogger.Errorf("Failed to parse the condition specified for content-based handler routing [%s] for reason [%s]. message lost", expressionStr, err)
-				continue
-			}
-			_, exists := handlerConditionMap[handler.ActionId]
-			if !exists {
-				handlerConditionMap[handler.ActionId] = conditionOperation
-			}
-		}
-
 		//offset
 		if handler.Settings["offset"] != nil {
 			i, error := strconv.Atoi(handler.Settings["offset"].(string))
@@ -384,24 +366,20 @@ func onMessage(t *KafkaSubTrigger, msg *sarama.ConsumerMessage) {
 			*/
 			//check if the message content is JSON first. mashling only supports JSON payloads for condition/content evaluation
 			data := string(msg.Value)
-			isJson := condition.IsJSON(data)
+			isJson := util.IsJSON(data)
 			if !isJson {
 				flogoLogger.Infof(fmt.Sprintf("Content is not a valid JSON payload [%v], skipping message.", data))
 				continue
 			} else {
-				//get the cached condition for this handler
-				conditionOperation, exists := handlerConditionMap[handler.ActionId]
-				if !exists {
-					flogoLogger.Debugf("Unable to find condition operator for handler [%v]. skipping message", handler)
-					continue
-				}
-				result, err := condition.EvaluateCondition(*conditionOperation, data)
+				//parse the condition
+				operation, err := model.GetConditionOperation(handler.Settings[util.Flogo_Trigger_Handler_Setting_Condition].(string), data)
+
 				if err != nil {
-					flogoLogger.Errorf("Unable to evaluate condition operator for handler [%v] with error [%v]. skipping message", handler.Settings[util.Flogo_Trigger_Handler_Setting_Condition], err)
+					flogoLogger.Errorf("Failed to parse the condition specified for content-based handler routing [%s] for reason [%s]. message lost", handler.Settings[util.Flogo_Trigger_Handler_Setting_Condition], err)
 					continue
 				}
 
-				if !result {
+				if !model.Evaluate(operation) {
 					flogoLogger.Debugf("condition[%v] does not match the message data [%v]. skipping message", handler.Settings[util.Flogo_Trigger_Handler_Setting_Condition], data)
 					continue
 				}
