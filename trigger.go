@@ -221,8 +221,6 @@ func initKafkaParms(t *KafkaSubTrigger) error {
 		return fmt.Errorf("Kafka trigger requires at least one handler containing a valid topic name")
 	}
 
-	flogoLogger.Debugf("registered operators are [%v]", condition.OperatorRegistry.Names())
-
 	for _, handler := range t.config.Handlers {
 		if handler.Settings["Topic"] == nil {
 			return fmt.Errorf("Topic string was not provided")
@@ -382,14 +380,12 @@ func onMessage(t *KafkaSubTrigger, msg *sarama.ConsumerMessage) {
 				conditionOperation, exists := handlerConditionMap[handler.ActionId]
 				if !exists {
 					expressionStr := handler.Settings[util.Flogo_Trigger_Handler_Setting_Condition].(string)
-					flogoLogger.Debugf("handler is [%v], expression is [%v]", handler.ActionId, expressionStr)
 
 					c, err := condition.GetConditionOperation(expressionStr)
 					if err != nil {
 						flogoLogger.Errorf("Failed to parse the condition specified for content-based handler routing [%s] for reason [%s]. message lost", expressionStr, err)
 						continue
 					}
-					flogoLogger.Debugf("handler is [%v], operation is [%v]", handler.ActionId, c)
 
 					handlerConditionMap[handler.ActionId] = c
 					conditionOperation = c
@@ -405,7 +401,6 @@ func onMessage(t *KafkaSubTrigger, msg *sarama.ConsumerMessage) {
 					flogoLogger.Debugf("condition[%v] does not match the message data [%v]. skipping message", handler.Settings[util.Flogo_Trigger_Handler_Setting_Condition], data)
 					continue
 				}
-				flogoLogger.Debugf("condition[%v] evaluates to true on data [%v]", handler.Settings[util.Flogo_Trigger_Handler_Setting_Condition], data)
 			}
 
 		}
