@@ -379,6 +379,7 @@ func onMessage(t *KafkaSubTrigger, msg *sarama.ConsumerMessage) {
 				//get the cached condition for this handler
 				conditionOperation, exists := handlerConditionMap[handler.ActionId]
 				if !exists {
+					//no condition found in cache for this handler. create an entry for th handler.
 					expressionStr := handler.Settings[util.Flogo_Trigger_Handler_Setting_Condition].(string)
 
 					c, err := condition.GetConditionOperation(expressionStr)
@@ -391,12 +392,14 @@ func onMessage(t *KafkaSubTrigger, msg *sarama.ConsumerMessage) {
 					conditionOperation = c
 				}
 
+				//evaluate the condition against the content payload
 				result, err := condition.EvaluateCondition(*conditionOperation, data)
 				if err != nil {
 					flogoLogger.Errorf("Unable to evaluate condition operator for handler [%v] with error [%v]. skipping message", handler.Settings[util.Flogo_Trigger_Handler_Setting_Condition], err)
 					continue
 				}
 
+				//depending on the result of condition evaluation, process the message or skip.
 				if !result {
 					flogoLogger.Debugf("condition[%v] does not match the message data [%v]. skipping message", handler.Settings[util.Flogo_Trigger_Handler_Setting_Condition], data)
 					continue
