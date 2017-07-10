@@ -376,6 +376,14 @@ func onMessage(t *KafkaSubTrigger, msg *sarama.ConsumerMessage) {
 				flogoLogger.Infof(fmt.Sprintf("Content is not a valid JSON payload [%v], skipping message.", data))
 				continue
 			} else {
+				/**
+					1. lookup the handler-condition map to see if we have a cached condition. the conditions do not change between two messages, so we can rely on the cache to get the condition for a handler.
+					-- if no condition found in the cache for the current handler, then ask mashling-lib to parse the condition expression and provide a condition that will be cached and used in processing
+					the current message.
+					-- if a pre-existing condition is found in the cache for the current handler then use it.
+
+					2. having found the condition for the handler, evaluate the condition to boolean result.
+				 */
 				//get the cached condition for this handler
 				conditionOperation, exists := handlerConditionMap[handler.ActionId]
 				if !exists {
